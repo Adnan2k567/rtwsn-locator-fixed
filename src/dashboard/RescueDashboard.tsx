@@ -14,11 +14,17 @@ export default function RescueDashboard() {
   useEffect(() => {
     AsyncStorage.getItem('pa_volunteer_onboarded').then((v: string | null) => {
       if (!v) setShowOnboarding(true);
+    }).catch((e) => {
+      console.warn('AsyncStorage error:', e);
+      setShowOnboarding(true);
     });
   }, []);
 
   const handleOnboardCTA = () => {
     AsyncStorage.setItem('pa_volunteer_onboarded', 'true').then(() => {
+      setShowOnboarding(false);
+    }).catch((e) => {
+      console.warn('AsyncStorage set error:', e);
       setShowOnboarding(false);
     });
   };
