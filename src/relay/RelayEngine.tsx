@@ -1,16 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { AppState, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useRelay } from './useRelay';
 import { useAppStore } from '../shared/store';
 import { getCacheSize } from './debounceCache';
 
 const RelayEngine = () => {
-  const { startRelaying, stopRelaying, isRelaying } = useRelay();
-  const isRelayingRef = useRef(isRelaying);
-
-  useEffect(() => {
-    isRelayingRef.current = isRelaying;
-  }, [isRelaying]);
+  const { startRelaying } = useRelay();
 
   const isServiceRunning = useAppStore((s) => s.isServiceRunning);
 
@@ -22,18 +17,7 @@ const RelayEngine = () => {
 
   useEffect(() => {
     startRelaying();
-
-    const sub = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active' && !isRelayingRef.current) {
-        startRelaying();
-      }
-    });
-
-    return () => {
-      sub.remove();
-      stopRelaying();
-    };
-  }, [startRelaying, stopRelaying]);
+  }, []);
 
   return null;
 };

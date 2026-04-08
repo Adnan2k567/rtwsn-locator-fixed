@@ -3,9 +3,11 @@
   "compilerOptions": {
     "types": ["jest"],
     "baseUrl": ".",
+    "lib": ["esnext"],
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "jsx": "react-native"
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]

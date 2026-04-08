@@ -16,6 +16,7 @@ type ScanDevice = {
   name?: string | null;
   rssi?: number | null;
   manufacturerData?: string | null;
+  serviceUUIDs?: string[] | null;
 };
 
 let managerRef: BleManager | null = null;
@@ -48,7 +49,7 @@ function stopRelayingFn() {
   managerRef = null;
   activeTimers.forEach(clearTimeout);
   activeTimers.clear();
-  NativeModules.BLEAdvertiser?.stopAdvertising()?.catch(() => {});
+  NativeModules.BLEAdvertiser?.stopAdvertising()?.catch(() => { });
   isRelayingState = false;
   notify();
 }
@@ -59,8 +60,9 @@ function startRelayingFn() {
   managerRef = manager;
   isRelayingState = true;
   notify();
-  manager.startDeviceScan([SOS_SERVICE_UUID], { allowDuplicates: true }, (error: unknown, device: ScanDevice | null) => {
+  manager.startDeviceScan(null, { allowDuplicates: true }, (error: unknown, device: ScanDevice | null) => {
     if (error || !device) return;
+    if (!device.serviceUUIDs?.includes('0000AA01-0000-1000-8000-00805F9B34FB') && !device.manufacturerData) return;
     const userId = device.name ?? device.id;
     let packet: SOSPacket;
     try {

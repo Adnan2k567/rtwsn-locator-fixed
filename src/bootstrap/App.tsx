@@ -43,10 +43,6 @@ export default function App() {
     setShowModal(false);
   };
 
-  if (!splashDone) {
-    return <SplashScreen onFinish={() => setSplashDone(true)} />;
-  }
-
   return (
     <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
       <SafeRelayEngine />
@@ -57,23 +53,27 @@ export default function App() {
           onDismiss={handleDismissPermissions}
         />
       )}
-      <NavigationContainer
-        theme={{
-          ...DarkTheme,
-          dark: true,
-          colors: {
-            ...DarkTheme.colors,
-            background: '#0A0A0A',
-            card: '#0A0A0A',
-            text: '#FFFFFF',
-            border: '#1C1C1C',
-            notification: '#E8001C',
-            primary: '#E8001C',
-          },
-        }}
-      >
-        <RootNavigator />
-      </NavigationContainer>
+      {!splashDone ? (
+        <SplashScreen onFinish={() => setSplashDone(true)} />
+      ) : (
+        <NavigationContainer
+          theme={{
+            ...DarkTheme,
+            dark: true,
+            colors: {
+              ...DarkTheme.colors,
+              background: '#0A0A0A',
+              card: '#0A0A0A',
+              text: '#FFFFFF',
+              border: '#1C1C1C',
+              notification: '#E8001C',
+              primary: '#E8001C',
+            },
+          }}
+        >
+          <RootNavigator />
+        </NavigationContainer>
+      )}
     </View>
   );
 }

@@ -24,13 +24,6 @@ const PermissionModal: React.FC<PermissionModalProps> = ({ visible, onAccept, on
                         </View>
                     </View>
 
-                    <View style={styles.row}>
-                        <View style={styles.square} />
-                        <View style={styles.textContainer}>
-                            <Text style={styles.rowTitle}>Location</Text>
-                            <Text style={styles.rowBody}>Required by Android for Bluetooth scanning. Never uploaded.</Text>
-                        </View>
-                    </View>
 
                     <View style={styles.row}>
                         <View style={styles.square} />

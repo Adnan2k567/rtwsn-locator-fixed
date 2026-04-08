@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { BleManager, Device } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
 
-import { SOS_SERVICE_UUID } from '../shared/bleConstants';
+import { BLE_HARDWARE_UUID } from '../shared/bleConstants';
 import { useAppStore } from '../shared/store';
 import { DetectedDevice, SOSPacket } from '../shared/types';
 
@@ -18,8 +18,12 @@ export const useListener = () => {
     managerRef.current = manager;
     setIsScanning(true);
 
-    manager.startDeviceScan([SOS_SERVICE_UUID], { allowDuplicates: true }, (error, device: Device | null) => {
+    manager.startDeviceScan(null, { allowDuplicates: true }, (error, device: Device | null) => {
       if (error || !device) return;
+
+      if (!device.serviceUUIDs?.includes(BLE_HARDWARE_UUID) && device.manufacturerData == null) {
+        return;
+      }
 
       let packet: SOSPacket;
       try {
