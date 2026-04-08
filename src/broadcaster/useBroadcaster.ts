@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Vibration, NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../shared/store';
+import { SOS_SERVICE_UUID } from '../shared/bleConstants';
+import { encodeSosPayload } from '../shared/sosPayload';
 
 const { BLEAdvertiser } = NativeModules;
 
@@ -58,14 +60,14 @@ export const useBroadcaster = () => {
         // Persist to AsyncStorage so listeners on the same device can detect us
         await AsyncStorage.setItem('PA_SOS_ACTIVE', JSON.stringify(packet));
 
-        // FIX #5: Actually start BLE advertising so other physical devices can detect us
-        // Device name format: PA-SOS-{userId} — matched by listener name filter
-        const advertisingName = `PA-SOS-${userId}`;
-        const payloadStr = JSON.stringify({ userId, medicalTag: medicalTag ?? '', timestamp: packet.timestamp });
+        // Start BLE advertising so other physical devices can detect us.
+        // Native contract: startAdvertising(uuid, payload)
+        // Keep payload <= 20 bytes so it survives Android advertiser truncation.
+        const payloadStr = encodeSosPayload(userId);
         try {
           if (BLEAdvertiser && typeof BLEAdvertiser.startAdvertising === 'function') {
-            await BLEAdvertiser.startAdvertising(advertisingName, payloadStr);
-            console.log('[BroadcasterHook] BLE advertising started:', advertisingName);
+            await BLEAdvertiser.startAdvertising(SOS_SERVICE_UUID, payloadStr);
+            console.log('[BroadcasterHook] BLE advertising started:', SOS_SERVICE_UUID);
           } else {
             console.warn('[BroadcasterHook] BLEAdvertiser native module not available — using AsyncStorage only');
           }
@@ -82,7 +84,7 @@ export const useBroadcaster = () => {
             // Re-emit BLE advertising pulse every 3s (keeps the SOS alive across restarts)
             try {
               if (BLEAdvertiser && typeof BLEAdvertiser.startAdvertising === 'function') {
-                await BLEAdvertiser.startAdvertising(advertisingName, JSON.stringify(updatedPacket));
+                await BLEAdvertiser.startAdvertising(SOS_SERVICE_UUID, encodeSosPayload(userId));
               }
             } catch { /* silent — already advertised */ }
           } catch (e) {

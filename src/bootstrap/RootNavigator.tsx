@@ -1,12 +1,11 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useAppStore } from '@/shared';
-
-const Tab = createBottomTabNavigator();
-
+import { useAppStore } from '../shared/store';
 import SOSScreen from '../broadcaster/BroadcasterScreen';
 import RescueScreen from '../dashboard/RescueDashboard';
+
+const Tab = createBottomTabNavigator();
 
 function HomeScreen() {
   const { role, isServiceRunning, detectedDevices } = useAppStore();
@@ -42,8 +41,13 @@ function HomeScreen() {
 
         <View style={styles.column}>
           <Text style={styles.colLabel}>NEARBY</Text>
-          <Text style={[styles.colValue, { color: isServiceRunning ? '#00C853' : 'white' }]}>
-            {detectedDevices.length.toString()}
+          <Text style={[styles.colValue, {
+            color: (detectedDevices.length + (role === 'broadcaster' ? 1 : 0)) > 0 ? '#00C853' : 'white'
+          }]}>
+            {(
+              detectedDevices.length +
+              (role === 'broadcaster' ? 1 : 0)
+            ).toString()}
           </Text>
         </View>
       </View>
@@ -58,18 +62,24 @@ export default function RootNavigator() {
         headerShown: false,
         tabBarIcon: () => null,
         tabBarStyle: {
-          backgroundColor: '#0A0A0A',
+          backgroundColor: '#111111',
           borderTopWidth: 1,
-          borderTopColor: '#1C1C1C',
-          height: 56,
+          borderTopColor: '#222222',
+          height: 80,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingBottom: 16,
+          paddingTop: 10,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700',
+          fontSize: 12,
+          fontWeight: '800',
           letterSpacing: 2,
         },
         tabBarActiveTintColor: '#E8001C',
-        tabBarInactiveTintColor: '#444',
+        tabBarInactiveTintColor: '#666666',
       }}
     >
       <Tab.Screen name="HOME" component={HomeScreen} />

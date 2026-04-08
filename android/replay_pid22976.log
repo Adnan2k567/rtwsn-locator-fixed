@@ -1,0 +1,28 @@
+JvmtiExport can_access_local_variables 0
+JvmtiExport can_hotswap_or_post_breakpoint 0
+JvmtiExport can_post_on_exceptions 0
+# 198 ciObject found
+instanceKlass com/android/tools/r8/graph/O4
+ciMethod com/android/tools/r8/internal/h1 <init> ()V 1034 0 517 0 0
+ciMethod com/android/tools/r8/internal/b1 <init> ()V 1024 0 512 0 0
+ciMethod com/android/tools/r8/internal/Ju0 c ()Z 1448 0 115712 0 0
+ciMethod com/android/tools/r8/graph/N4 a (Ljava/util/function/Predicate;Ljava/util/function/Consumer;Lcom/android/tools/r8/graph/k1;)Lcom/android/tools/r8/internal/Ju0; 154752 0 245326 0 4544
+ciMethod com/android/tools/r8/graph/O4 b (Ljava/util/function/Function;)Lcom/android/tools/r8/internal/Ju0; 2282 67336 2258 0 -1
+ciMethod com/android/tools/r8/internal/z40 <init> (Lcom/android/tools/r8/internal/B40;)V 4100 0 2975 0 0
+ciMethod com/android/tools/r8/internal/z40 hasNext ()Z 4096 0 63236 0 96
+ciMethod com/android/tools/r8/internal/z40 b ()I 8306 0 31862 0 256
+ciMethod com/android/tools/r8/internal/B40 entrySet ()Ljava/util/Set; 4116 0 2519 0 0
+ciMethod com/android/tools/r8/internal/y40 <init> (Lcom/android/tools/r8/internal/B40;)V 1022 0 511 0 0
+ciMethod com/android/tools/r8/internal/y40 iterator ()Ljava/util/Iterator; 4116 0 2519 0 0
+ciMethod com/android/tools/r8/internal/i1 <init> ()V 1024 0 512 0 0
+ciMethod com/android/tools/r8/graph/N4$$Lambda$4168+0x000001ace291f348 apply (Ljava/lang/Object;)Ljava/lang/Object; 4130 0 248735 0 160
+ciMethod com/android/tools/r8/internal/u40 <init> (Lcom/android/tools/r8/internal/B40;)V 1024 0 973 0 0
+ciMethod com/android/tools/r8/internal/u40 next ()Ljava/lang/Object; 8308 0 16447 0 768
+ciMethod com/android/tools/r8/internal/x40 <init> (Lcom/android/tools/r8/internal/B40;I)V 4096 0 14345 0 0
+ciMethod com/android/tools/r8/internal/x40 getValue ()Ljava/lang/Object; 30034 0 16209 0 160
+ciMethodData com/android/tools/r8/internal/z40 hasNext ()Z 2 63236 orig 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 11 0x50007 0x4df 0x20 0xeb91 0x0 0x0 0x0 0x0 0x9 0x1 0x0 oops 0 methods 0
+ciMethodData com/android/tools/r8/internal/x40 <init> (Lcom/android/tools/r8/internal/B40;I)V 2 14345 orig 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 11 0x70002 0x3008 0x0 0x0 0x0 0x0 0x9 0x3 0x6 0x0 0x0 oops 0 methods 0
+ciMethodData com/android/tools/r8/internal/x40 getValue ()Ljava/lang/Object; 2 16209 orig 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 7 0x0 0x0 0x0 0x0 0x9 0x1 0x0 oops 0 methods 0
+ciMethodData com/android/tools/r8/internal/z40 b ()I 2 31862 orig 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 26 0x10005 0x6f56 0x0 0x0 0x0 0x0 0x0 0x40007 0x0 0x40 0x6f06 0x280007 0x0 0x20 0x6f22 0x3a0002 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x9 0x1 0x0 oops 0 methods 0
+ciMethodData com/android/tools/r8/internal/u40 next ()Ljava/lang/Object; 2 16447 orig 80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 18 0xd0005 0x3005 0x0 0x0 0x0 0x0 0x0 0x120002 0x3004 0x0 0x0 0x0 0x0 0x0 0x0 0x9 0x1 0x0 oops 0 methods 0
+ciMethodData com/android/tools/r8/graph/N4$$Lambda$4168+0x000001ace291f348 apply (Ljava/lang/Object;)Ljava/lang/Object; 2 248735 orig 80 2 0 0 0 0 0 0 0 0 0 0 0 172 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 19 0x90004 0x0 0x0 0x1ac828215e0 0x3c47c 0x0 0x0 0xc0002 0x3c619 0x0 0x0 0x0 0x0 0x0 0x0 0x9 0x2 0x0 0x0 oops 1

@@ -1,4 +1,5 @@
-export const SOS_SERVICE_UUID        = 'KUMBH-SOS-001';
+// Must be a valid 128-bit UUID for BLE advertising/scanning filters.
+export const SOS_SERVICE_UUID        = '0000AA00-0000-1000-8000-00805F9B34FB';
 export const BLE_HARDWARE_UUID       = '0000AA01-0000-1000-8000-00805F9B34FB';
 export const RSSI_HOT                = -50;
 export const RSSI_WARM               = -70;

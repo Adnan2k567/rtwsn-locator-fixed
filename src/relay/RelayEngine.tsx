@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useRelay } from './useRelay';
 import { useAppStore } from '../shared/store';
@@ -7,23 +7,46 @@ import { getCacheSize } from './debounceCache';
 const RelayEngine = () => {
   const { startRelaying, stopRelaying } = useRelay();
 
-  const isServiceRunning = useAppStore((s) => s.isServiceRunning);
+  const role = useAppStore((s) => s.role);
   const setServiceRunning = useAppStore((s) => s.setServiceRunning);
 
-  useEffect(() => {
-    if (!isServiceRunning) {
-      console.warn('[RelayEngine] foreground service stopped', getCacheSize());
-    }
-  }, [isServiceRunning]);
+  // Keep stable refs so the main effect never re-fires due to function identity changes
+  const startRef = useRef(startRelaying);
+  const stopRef = useRef(stopRelaying);
+  const setServiceRef = useRef(setServiceRunning);
+  useEffect(() => { startRef.current = startRelaying; }, [startRelaying]);
+  useEffect(() => { stopRef.current = stopRelaying; }, [stopRelaying]);
+  useEffect(() => { setServiceRef.current = setServiceRunning; }, [setServiceRunning]);
 
+  // Start relay on mount, stop on unmount. Runs exactly once.
   useEffect(() => {
-    startRelaying();
-    setServiceRunning(true);
+    startRef.current();
+    setServiceRef.current(true);
     return () => {
-      stopRelaying();
-      setServiceRunning(false);
+      stopRef.current();
+      setServiceRef.current(false);
     };
-  }, [startRelaying, stopRelaying, setServiceRunning]);
+  }, []);
+
+  // When the user is actively scanning in the RESCUE tab (role = 'listener'),
+  // temporarily pause the relay's BLE scan to avoid two BleManager instances
+  // fighting over the same radio. Resume when scanning stops.
+  const pausedRef = useRef(false);
+  useEffect(() => {
+    if (role === 'listener') {
+      if (!pausedRef.current) {
+        pausedRef.current = true;
+        stopRef.current();
+        console.log('[RelayEngine] paused relay scan — user is actively scanning');
+      }
+    } else {
+      if (pausedRef.current) {
+        pausedRef.current = false;
+        startRef.current();
+        console.log('[RelayEngine] resumed relay scan');
+      }
+    }
+  }, [role]);
 
   return null;
 };

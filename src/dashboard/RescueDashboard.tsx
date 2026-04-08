@@ -136,11 +136,7 @@ export default function RescueDashboard() {
         />
       )}
 
-      <View style={styles.bottomBar}>
-        <Text style={styles.bottomBarText}>
-          {isScanning ? `${sortedDevices.length} signal(s) active` : 'Scanner off'}
-        </Text>
-      </View>
+
 
       {selectedDevice && (
         <View style={styles.radarOverlay}>
@@ -293,7 +289,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 24,
     paddingTop: 8,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   nearestPillContainer: {
     alignItems: 'flex-start',
@@ -362,22 +358,7 @@ const styles = StyleSheet.create({
     color: '#E8001C',
     marginTop: 4,
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#0A0A0A',
-    borderTopWidth: 1,
-    borderTopColor: '#111',
-    padding: 16,
-  },
-  bottomBarText: {
-    fontSize: 10,
-    letterSpacing: 2,
-    color: '#666',
-    textAlign: 'center',
-  },
+  // bottomBar removed — tab bar serves this purpose now
   radarOverlay: {
     position: 'absolute',
     top: 0,

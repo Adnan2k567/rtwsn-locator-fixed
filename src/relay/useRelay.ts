@@ -6,6 +6,7 @@ import { useAppStore } from '../shared/store';
 import type { DetectedDevice, SOSPacket } from '../shared/types';
 import { shouldRelay } from './debounceCache';
 import { MY_SESSION_JITTER_MS } from './relayJitter';
+import { encodeSosPayload, decodeSosPayload } from '../shared/sosPayload';
 
 declare const Buffer: {
   from(data: string, encoding: 'base64'): { toString(encoding: 'utf8'): string };
@@ -17,6 +18,7 @@ type ScanDevice = {
   rssi?: number | null;
   manufacturerData?: string | null;
   serviceUUIDs?: string[] | null;
+  serviceData?: Record<string, string> | null;
 };
 
 let managerRef: BleManager | null = null;
@@ -65,19 +67,62 @@ function startRelayingFn() {
   notify();
   manager.startDeviceScan(null, { allowDuplicates: true }, (error: unknown, device: ScanDevice | null) => {
     if (error || !device) return;
-    // Only relay confirmed PA-SOS devices — strict name prefix OR known service UUID
-    // We deliberately do NOT use manufacturerData alone as a signal — any generic BT device can have manufacturer data
+    // Only relay confirmed SOS devices:
+    // - service UUID matches, OR
+    // - manufacturer payload decodes with our prefix (PA1|...)
+    // BOMBSHELL FIX: Explicit, unbreakable filter evaluation
+    let isAuthenticSOS = false;
     const deviceName = device.name ?? '';
-    const hasSosName = deviceName.startsWith('PA-SOS');
-    const hasSosUUID = (device.serviceUUIDs?.includes('0000AA01-0000-1000-8000-00805F9B34FB') ?? false);
-    if (!hasSosName && !hasSosUUID) return;
+    if (deviceName.startsWith('PA-SOS')) {
+      isAuthenticSOS = true;
+    }
+
+    const targetUUID = '0000aa00-0000-1000-8000-00805f9b34fb';
+    if (device.serviceUUIDs && Array.isArray(device.serviceUUIDs)) {
+      for (let i = 0; i < device.serviceUUIDs.length; i++) {
+        if (device.serviceUUIDs[i].toLowerCase() === targetUUID) {
+          isAuthenticSOS = true;
+          break;
+        }
+      }
+    }
+
+    try {
+      const matchKey = device.serviceData ? Object.keys(device.serviceData).find(k => k.toLowerCase() === targetUUID) : undefined;
+      const sdB64 = matchKey ? device.serviceData![matchKey] : null;
+      const sdRaw = sdB64 ? Buffer.from(sdB64, 'base64').toString('utf8') : '';
+      const sdUserId = decodeSosPayload(sdRaw)?.userId;
+      if (sdUserId) {
+        isAuthenticSOS = true;
+      } else {
+        const raw = device.manufacturerData
+          ? Buffer.from(device.manufacturerData, 'base64').toString('utf8')
+          : '';
+        if (decodeSosPayload(raw)?.userId) {
+          isAuthenticSOS = true;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    if (!isAuthenticSOS) return;
     const userId = device.name ?? device.id;
     let packet: SOSPacket;
     try {
-      const raw = device.manufacturerData
-        ? Buffer.from(device.manufacturerData, 'base64').toString('utf8')
-        : '';
-      packet = JSON.parse(raw) as SOSPacket;
+      const matchKey = device.serviceData ? Object.keys(device.serviceData).find(k => k.toLowerCase() === targetUUID) : undefined;
+      const sdB64 = matchKey ? device.serviceData![matchKey] : null;
+      const sdRaw = sdB64 ? Buffer.from(sdB64, 'base64').toString('utf8') : '';
+      const sdParsed = decodeSosPayload(sdRaw);
+      if (sdParsed.userId) {
+        packet = { userId: sdParsed.userId, timestamp: Date.now() };
+      } else {
+        const raw = device.manufacturerData
+          ? Buffer.from(device.manufacturerData, 'base64').toString('utf8')
+          : '';
+        const parsed = decodeSosPayload(raw);
+        packet = { userId: parsed.userId || userId, timestamp: Date.now() };
+      }
     } catch {
       packet = { userId, timestamp: Date.now() };
     }
@@ -91,7 +136,7 @@ function startRelayingFn() {
     if (shouldRelay(userId, RELAY_COOLDOWN_MS)) {
       const t = setTimeout(async () => {
         try {
-          await NativeModules.BLEAdvertiser?.startAdvertising(SOS_SERVICE_UUID, JSON.stringify(packet));
+          await NativeModules.BLEAdvertiser?.startAdvertising(SOS_SERVICE_UUID, encodeSosPayload(packet.userId));
           const stopT = setTimeout(() => {
             NativeModules.BLEAdvertiser?.stopAdvertising();
           }, RELAY_BURST_DURATION_MS);

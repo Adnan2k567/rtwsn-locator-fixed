@@ -84,6 +84,12 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        ndk {
+            // Build only for modern physical Android devices (arm64).
+            // Cuts C++ compile time by ~75% vs building all 4 architectures.
+            // Add "armeabi-v7a" here if you need to support 8+ year old phones.
+            abiFilters "arm64-v8a"
+        }
     }
     signingConfigs {
         debug {

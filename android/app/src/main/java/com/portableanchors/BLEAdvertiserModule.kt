@@ -38,12 +38,15 @@ class BLEAdvertiserModule(reactContext: ReactApplicationContext) : ReactContextB
                 .setTimeout(0)
                 .build()
 
+            val uuid = ParcelUuid.fromString(serviceUUID)
+            val payloadBytes = payload.toByteArray(Charsets.UTF_8).take(20).toByteArray()
+
             val data = AdvertiseData.Builder()
-                .addServiceUuid(ParcelUuid.fromString("0000AA01-0000-1000-8000-00805F9B34FB"))
-                .addManufacturerData(
-                    0x0059,
-                    payload.toByteArray(Charsets.UTF_8).take(20).toByteArray()
-                )
+                // Broadcast UUID so scanners can filter quickly. (Compresses to 4 bytes)
+                .addServiceUuid(uuid)
+                // Broadcast payload via ServiceData. (Header 4 bytes + Payload 20 = 24 bytes)
+                // Total packet: 3 (Flags) + 4 + 24 = 31 bytes perfectly.
+                .addServiceData(uuid, payloadBytes)
                 .setIncludeDeviceName(false)
                 .build()
 

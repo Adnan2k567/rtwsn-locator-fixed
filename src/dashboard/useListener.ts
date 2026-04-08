@@ -4,12 +4,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAppStore } from '../shared/store';
 import { DetectedDevice, SOSPacket } from '../shared/types';
+import { SOS_SERVICE_UUID } from '../shared/bleConstants';
+import { decodeSosPayload } from '../shared/sosPayload';
 
 // Stale device threshold: remove devices not seen in 15 seconds
 const STALE_THRESHOLD_MS = 15000;
 
-// Name prefix every SOS broadcaster must use
-const SOS_NAME_PREFIX = 'PA-SOS';
+declare const Buffer: {
+  from(data: string, encoding: 'base64'): { toString(encoding: 'utf8'): string };
+};
+
+function tryDecodeBase64Utf8(b64: string | null | undefined): string {
+  if (!b64) return '';
+  try {
+    return Buffer.from(b64, 'base64').toString('utf8');
+  } catch {
+    return '';
+  }
+}
 
 export const useListener = () => {
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -95,21 +107,60 @@ export const useListener = () => {
 
     setIsScanning(true);
 
-    // BLE scan — only accept PA-SOS named devices (Fix #4)
+    // BLE scan — we still filter in-callback because Android scan filters can be unreliable
+    // across devices/OEMs with react-native-ble-plx.
     manager.startDeviceScan(
       null,
       { allowDuplicates: true },
       (error, device: Device | null) => {
         if (error || !device) return;
 
-        // FIX #4: strict name filter — only PA-SOS prefixed names
-        const deviceName = device.name ?? '';
-        if (!deviceName.startsWith(SOS_NAME_PREFIX)) return;
+        // BOMBSHELL FIX: Explicit, unbreakable filter evaluation
+        let isAuthenticSOS = false;
 
-        const userId = deviceName.replace(/^PA-SOS[-_:\s]*/i, '') || device.id;
+        // Condition 1: Has correct UUID
+        const targetUUID = '0000aa00-0000-1000-8000-00805f9b34fb';
+        if (device.serviceUUIDs && Array.isArray(device.serviceUUIDs)) {
+          for (let i = 0; i < device.serviceUUIDs.length; i++) {
+            if (device.serviceUUIDs[i].toLowerCase() === targetUUID) {
+              isAuthenticSOS = true;
+              break;
+            }
+          }
+        }
+
+        let parsedUserId: string | undefined;
+        try {
+          const serviceDataMap = (device as any).serviceData as Record<string, string> | null | undefined;
+          let sdB64: string | undefined;
+          if (serviceDataMap) {
+            const matchKey = Object.keys(serviceDataMap).find(k => k.toLowerCase() === targetUUID);
+            if (matchKey) sdB64 = serviceDataMap[matchKey];
+          }
+          const sdRaw = tryDecodeBase64Utf8(sdB64);
+          parsedUserId = decodeSosPayload(sdRaw)?.userId;
+
+          if (!parsedUserId) {
+            const md = (device as any).manufacturerData as string | null | undefined;
+            const mdRaw = tryDecodeBase64Utf8(md);
+            parsedUserId = decodeSosPayload(mdRaw)?.userId;
+          }
+        } catch {
+          parsedUserId = undefined;
+        }
+
+        // Condition 2: Has decoded payload starting with PA1|
+        if (parsedUserId && parsedUserId.length > 0) {
+          isAuthenticSOS = true;
+        }
+
+        // If it strictly fails both constraints, absolutely drop the packet immediately
+        if (!isAuthenticSOS) {
+          return;
+        }
 
         const packet: SOSPacket = {
-          userId,
+          userId: parsedUserId || (device as any).localName || (device as any).name || device.id,
           timestamp: Date.now(),
         };
 
