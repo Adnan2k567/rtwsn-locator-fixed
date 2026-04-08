@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Vibration } from 'react-native';
 import { useAppStore } from '../shared/store';
-import { DetectedDevice, getRSSIState, RSSI_COLORS, RSSIState } from '../shared/types';
+import { DetectedDevice, getRSSIState, RSSI_COLORS, RSSIState, rssiToDistanceCm, kalmanFilterRSSI } from '../shared/types';
 
 interface Props {
   device: DetectedDevice;
@@ -34,6 +34,9 @@ export default function RadarScreen({ device, onBack }: Props) {
   const [rssi, setRssi] = useState<number>(device.rssi);
   const [rssiHistory, setRssiHistory] = useState<number[]>([]);
   const prevStateRef = useRef<RSSIState | null>(null);
+  // Kalman filter state
+  const kalmanEstimateRef = useRef<number>(device.rssi);
+  const kalmanErrorRef = useRef<number>(25);
   
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
@@ -74,17 +77,29 @@ export default function RadarScreen({ device, onBack }: Props) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const currentRssi = liveDeviceRef.current.rssi;
-      setRssi(currentRssi);
+      const rawRssi = liveDeviceRef.current.rssi;
       
-      const st = getRSSIState(currentRssi);
+      // FIX #5: Apply Kalman filter to stabilize noisy RSSI for more accurate distance
+      const { estimate: filteredRssi, error: newError } = kalmanFilterRSSI(
+        kalmanEstimateRef.current,
+        rawRssi,
+        0.008,
+        25,
+        kalmanErrorRef.current
+      );
+      kalmanEstimateRef.current = filteredRssi;
+      kalmanErrorRef.current = newError;
+      
+      setRssi(filteredRssi);
+      
+      const st = getRSSIState(filteredRssi);
       if (st === 'hot' && prevStateRef.current !== 'hot') {
         Vibration.vibrate([0, 80, 60, 80]);
       }
       prevStateRef.current = st;
       
       setRssiHistory(prev => {
-        const next = [...prev, currentRssi];
+        const next = [...prev, filteredRssi];
         return next.length > 20 ? next.slice(next.length - 20) : next;
       });
     }, 500);
@@ -138,8 +153,9 @@ export default function RadarScreen({ device, onBack }: Props) {
             backgroundColor: currentColor + '14', 
             borderColor: currentColor + 'CC' 
           }]}>
-            <Text style={[styles.rssiValueText, { color: currentColor }]}>{String(rssi)}</Text>
-            <Text style={[styles.rssiUnitText, { color: currentColor }]}>dBm</Text>
+            <Text style={[styles.distanceCmText, { color: currentColor }]}>{rssiToDistanceCm(rssi)}</Text>
+            <Text style={[styles.distanceCmUnit, { color: currentColor }]}>cm</Text>
+            <Text style={[styles.rssiSmallText, { color: currentColor }]}>{rssi} dBm</Text>
           </View>
         </Animated.View>
 
@@ -292,6 +308,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     letterSpacing: 1,
+  },
+  distanceCmText: {
+    fontSize: 32,
+    fontWeight: '900',
+    lineHeight: 34,
+  },
+  distanceCmUnit: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.85,
+    marginTop: -2,
+  },
+  rssiSmallText: {
+    fontSize: 9,
+    opacity: 0.5,
+    letterSpacing: 1,
+    marginTop: 4,
   },
   stateLabelText: {
     fontSize: 22,

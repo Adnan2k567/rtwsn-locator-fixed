@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useListener } from './useListener';
 import RadarScreen from './RadarScreen';
 
-import { DetectedDevice, getRSSIState, RSSI_COLORS } from '../shared/types';
+import { DetectedDevice, getRSSIState, RSSI_COLORS, rssiToDistanceCm } from '../shared/types';
 
 export default function RescueDashboard() {
   const [selectedDevice, setSelectedDevice] = useState<DetectedDevice | null>(null);
@@ -56,6 +56,7 @@ export default function RescueDashboard() {
     const currentState = getRSSIState(item.rssi);
     const currentColor = RSSI_COLORS[currentState];
     const secondsAgo = Math.max(0, Math.round((Date.now() - item.lastSeen) / 1000));
+    const distanceCm = rssiToDistanceCm(item.rssi);
 
     return (
       <View>
@@ -80,10 +81,10 @@ export default function RescueDashboard() {
           </View>
           
           <View style={styles.cardRight}>
-            <View style={styles.rssiRow}>
-              <Text style={[styles.rssiValueText, { color: currentColor }]}>{item.rssi}</Text>
-              <Text style={[styles.rssiUnitText, { color: currentColor, marginLeft: 2 }]}>dBm</Text>
-            </View>
+            <Text style={[styles.distanceValueText, { color: currentColor }]}>
+              {distanceCm}
+            </Text>
+            <Text style={[styles.distanceUnitText, { color: currentColor }]}>cm</Text>
             <Text style={styles.trackText}>TRACK</Text>
           </View>
         </TouchableOpacity>
@@ -340,19 +341,19 @@ const styles = StyleSheet.create({
   },
   cardRight: {
     alignItems: 'flex-end',
+    minWidth: 72,
   },
-  rssiRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  rssiValueText: {
-    fontSize: 22,
+  distanceValueText: {
+    fontSize: 26,
     fontWeight: '900',
+    lineHeight: 28,
   },
-  rssiUnitText: {
-    fontSize: 9,
-    opacity: 0.6,
+  distanceUnitText: {
+    fontSize: 10,
+    fontWeight: '700',
     letterSpacing: 1,
+    opacity: 0.7,
+    marginTop: -2,
   },
   trackText: {
     fontSize: 9,

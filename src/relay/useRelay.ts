@@ -45,8 +45,11 @@ function getSnapshot() {
 }
 
 function stopRelayingFn() {
-  managerRef?.stopDeviceScan();
-  managerRef = null;
+  if (managerRef) {
+    managerRef.stopDeviceScan();
+    managerRef.destroy(); // FIX #1: release native BLE resources to prevent memory leak/crash
+    managerRef = null;
+  }
   activeTimers.forEach(clearTimeout);
   activeTimers.clear();
   NativeModules.BLEAdvertiser?.stopAdvertising()?.catch(() => { });
@@ -62,7 +65,12 @@ function startRelayingFn() {
   notify();
   manager.startDeviceScan(null, { allowDuplicates: true }, (error: unknown, device: ScanDevice | null) => {
     if (error || !device) return;
-    if (!device.serviceUUIDs?.includes('0000AA01-0000-1000-8000-00805F9B34FB') && !device.manufacturerData) return;
+    // Only relay confirmed PA-SOS devices — strict name prefix OR known service UUID
+    // We deliberately do NOT use manufacturerData alone as a signal — any generic BT device can have manufacturer data
+    const deviceName = device.name ?? '';
+    const hasSosName = deviceName.startsWith('PA-SOS');
+    const hasSosUUID = (device.serviceUUIDs?.includes('0000AA01-0000-1000-8000-00805F9B34FB') ?? false);
+    if (!hasSosName && !hasSosUUID) return;
     const userId = device.name ?? device.id;
     let packet: SOSPacket;
     try {
