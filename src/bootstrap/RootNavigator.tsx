@@ -42,7 +42,7 @@ function HomeScreen() {
 
         <View style={styles.column}>
           <Text style={styles.colLabel}>NEARBY</Text>
-          <Text style={[styles.colValue, { color: 'white' }]}>
+          <Text style={[styles.colValue, { color: isServiceRunning ? '#00C853' : 'white' }]}>
             {detectedDevices.length.toString()}
           </Text>
         </View>

@@ -1,20 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import { NativeModules, Vibration } from 'react-native';
-import { SOS_SERVICE_UUID } from '../shared/bleConstants';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Vibration } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../shared/store';
 
 export const useBroadcaster = () => {
   const [isAdvertising, setIsAdvertising] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { setRole, setUserId } = useAppStore();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopSOS = useCallback(async (): Promise<void> => {
     try {
-      if (NativeModules.BLEAdvertiser) {
-        await NativeModules.BLEAdvertiser.stopAdvertising();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      const existingStr = await AsyncStorage.getItem('PA_SOS_ACTIVE');
+      if (existingStr) {
+        const existing = JSON.parse(existingStr);
+        await AsyncStorage.setItem('PA_SOS_ACTIVE', JSON.stringify({ ...existing, active: false }));
       }
     } catch (e: any) {
-      console.warn('Failed to stop advertising in native module', e);
+      console.warn('Failed to stop SOS fallback', e);
     } finally {
       setIsAdvertising(false);
       setRole('idle');
@@ -23,20 +31,28 @@ export const useBroadcaster = () => {
 
   const startSOS = useCallback(async (userId: string, medicalTag?: string): Promise<void> => {
     setError(null);
-    
-    if (!NativeModules.BLEAdvertiser) {
-      setError('Native BLE module unavailable');
-      return;
-    }
 
     try {
-      const payload = JSON.stringify({
+      const packet = {
         userId,
         medicalTag: medicalTag ?? '',
-        timestamp: Date.now()
-      });
+        timestamp: Date.now(),
+        active: true,
+      };
 
-      await NativeModules.BLEAdvertiser.startAdvertising(SOS_SERVICE_UUID, payload);
+      await AsyncStorage.setItem('PA_SOS_ACTIVE', JSON.stringify(packet));
+
+      intervalRef.current = setInterval(async () => {
+        try {
+          const updatedPacket = {
+            ...packet,
+            timestamp: Date.now(),
+          };
+          await AsyncStorage.setItem('PA_SOS_ACTIVE', JSON.stringify(updatedPacket));
+        } catch (e) {
+          console.warn('Failed to update SOS heartbeat', e);
+        }
+      }, 3000);
       
       setIsAdvertising(true);
       setRole('broadcaster');
@@ -44,6 +60,7 @@ export const useBroadcaster = () => {
       Vibration.vibrate([0, 200, 100, 200]);
     } catch (e: any) {
       setError(e.message || 'Unknown error occurred while starting SOS');
+      setIsAdvertising(false);
     }
   }, [setRole, setUserId]);
 

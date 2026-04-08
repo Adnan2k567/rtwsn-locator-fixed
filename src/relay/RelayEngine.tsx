@@ -5,9 +5,10 @@ import { useAppStore } from '../shared/store';
 import { getCacheSize } from './debounceCache';
 
 const RelayEngine = () => {
-  const { startRelaying } = useRelay();
+  const { startRelaying, stopRelaying } = useRelay();
 
   const isServiceRunning = useAppStore((s) => s.isServiceRunning);
+  const setServiceRunning = useAppStore((s) => s.setServiceRunning);
 
   useEffect(() => {
     if (!isServiceRunning) {
@@ -17,7 +18,12 @@ const RelayEngine = () => {
 
   useEffect(() => {
     startRelaying();
-  }, []);
+    setServiceRunning(true);
+    return () => {
+      stopRelaying();
+      setServiceRunning(false);
+    };
+  }, [startRelaying, stopRelaying, setServiceRunning]);
 
   return null;
 };
@@ -28,12 +34,13 @@ type RelayStatusBadgeProps = { style?: StyleProp<ViewStyle> };
 
 export function RelayStatusBadge({ style }: RelayStatusBadgeProps) {
   const { isRelaying } = useRelay();
+  const detectedDevices = useAppStore((s) => s.detectedDevices);
 
   return (
     <View style={[styles.pill, isRelaying ? styles.pillActive : styles.pillInactive, style]}>
       <View style={[styles.dot, isRelaying ? styles.dotActive : styles.dotInactive]} />
       <Text style={[styles.label, isRelaying ? styles.labelActive : styles.labelInactive]}>
-        {isRelaying ? 'MESH ACTIVE' : 'MESH INACTIVE'}
+        {isRelaying ? `${detectedDevices.length} devices in mesh` : 'MESH INACTIVE'}
       </Text>
     </View>
   );

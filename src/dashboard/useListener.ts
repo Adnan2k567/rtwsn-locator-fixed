@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { BleManager, Device } from 'react-native-ble-plx';
-import { Buffer } from 'buffer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { BLE_HARDWARE_UUID } from '../shared/bleConstants';
 import { useAppStore } from '../shared/store';
 import { DetectedDevice, SOSPacket } from '../shared/types';
 
@@ -14,26 +13,25 @@ export const useListener = () => {
 
   const startListening = () => {
     setRole('listener');
-    const manager = new BleManager();
-    managerRef.current = manager;
+    if (!managerRef.current) {
+      managerRef.current = new BleManager();
+    }
+    const manager = managerRef.current;
     setIsScanning(true);
 
     manager.startDeviceScan(null, { allowDuplicates: true }, (error, device: Device | null) => {
       if (error || !device) return;
 
-      if (!device.serviceUUIDs?.includes(BLE_HARDWARE_UUID) && device.manufacturerData == null) {
+      if (!device.name || !device.name.startsWith('PA-SOS')) {
         return;
       }
 
-      let packet: SOSPacket;
-      try {
-        const raw = device.manufacturerData
-          ? Buffer.from(device.manufacturerData, 'base64').toString('utf8')
-          : '';
-        packet = JSON.parse(raw);
-      } catch {
-        packet = { userId: device.id, timestamp: Date.now() };
-      }
+      const userId = device.name.replace(/^PA-SOS[-_:\s]*/i, '') || device.id;
+
+      const packet: SOSPacket = {
+        userId,
+        timestamp: Date.now()
+      };
 
       const detected: DetectedDevice = {
         id: device.id,
@@ -53,16 +51,41 @@ export const useListener = () => {
   };
 
   const sortedDevices = useMemo(() => {
-    return [...detectedDevices].sort((a, b) => b.rssi - a.rssi);
+    return [...detectedDevices]
+      .filter(d => Boolean(d.packet && d.packet.userId))
+      .sort((a, b) => b.rssi - a.rssi);
   }, [detectedDevices]);
 
+  // Check AsyncStorage for local SOS heartbeat
   useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('[Listener] stale cleanup ran');
-    }, 5000);
+    const interval = setInterval(async () => {
+      try {
+        const existingStr = await AsyncStorage.getItem('PA_SOS_ACTIVE');
+        if (existingStr) {
+          const existing = JSON.parse(existingStr);
+          if (existing && existing.active) {
+            upsertDevice({
+              id: 'local-sos',
+              rssi: -10, // Hot RSSI to stay near top
+              packet: {
+                userId: existing.userId,
+                medicalTag: existing.medicalTag,
+                timestamp: existing.timestamp || Date.now()
+              },
+              lastSeen: Date.now()
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to read local SOS heartbeat', e);
+      }
+    }, 3000);
 
+    return () => clearInterval(interval);
+  }, [upsertDevice]);
+
+  useEffect(() => {
     return () => {
-      clearInterval(interval);
       stopListening();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
